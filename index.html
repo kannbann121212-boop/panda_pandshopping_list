@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>買い物リスト</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="theme-color" content="#E88DA3">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="買い物リスト">
+  <style>
+    :root {
+      --pink: #E88DA3;
+      --pink-dark: #D97891;
+      --pink-light: #FFF8FA;
+      --pink-soft: #FCEAF0;
+      --line: #F3C3CF;
+      --text: #444444;
+      --muted: #999999;
+      --danger: #D96B7C;
+      --white: #FFFFFF;
+      --shadow: 0 2px 10px rgba(90, 45, 60, 0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+      background: var(--pink-light);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    header {
+      background: var(--pink);
+      color: white;
+      padding: calc(14px + env(safe-area-inset-top)) 16px 15px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      box-shadow: 0 2px 10px rgba(90, 45, 60, 0.12);
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    main {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .tabs-wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 14px 16px 4px;
+      position: sticky;
+      top: calc(49px + env(safe-area-inset-top));
+      background: linear-gradient(var(--pink-light) 80%, rgba(255,248,250,0));
+      z-index: 10;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab,
+    .tab-add {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      color: #666;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 1px 5px rgba(90,45,60,.04);
+    }
+
+    .tab.active {
+      background: var(--pink);
+      border-color: var(--pink);
+      color: white;
+    }
+
+    .tab-add {
+      width: 43px;
+      padding: 10px 0;
+      text-align: center;
+      color: var(--pink);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    input {
+      font-family: inherit;
+      font-size: 16px;
+    }
+
+    .input-area input {
+      flex: 1;
+      min-width: 0;
+      padding: 14px 15px;
+      border: 2px solid var(--line);
+      border-radius: 15px;
+      outline: none;
+      background: white;
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    .input-area input:focus {
+      border-color: var(--pink);
+    }
+
+    .add-item-btn {
+      width: 52px;
+      height: 52px;
+      border: none;
+      border-radius: 50%;
+      background: var(--pink);
+      color: white;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+
+    .add-item-btn:active {
+      background: var(--pink-dark);
+      transform: scale(.97);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .actions button {
+      flex: 1;
+      padding: 11px 8px;
+      border: 2px solid var(--line);
+      background: white;
+      color: var(--pink-dark);
+      border-radius: 13px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 1px 6px rgba(90,45,60,.04);
+    }
+
+    .actions button:active {
+      background: var(--pink-soft);
+    }
+
+    .item-list {
+      list-style: none;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      background: white;
+      border-radius: 15px;
+      padding: 14px 12px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(243,195,207,.55);
+    }
+
+    .item.checked {
+      background: var(--pink-soft);
+      opacity: .78;
+    }
+
+    .item-check {
+      width: 27px;
+      height: 27px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      background: white;
+    }
+
+    .item.checked .item-check {
+      background: var(--pink);
+      border-color: var(--pink);
+    }
+
+    .item.checked .item-check::after {
+      content: "✓";
+    }
+
+    .item-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 16px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .item.checked .item-name {
+      color: #888;
+      text-decoration: line-through;
+    }
+
+    .item-delete {
+      width: 34px;
+      height: 34px;
+      border: none;
+      background: transparent;
+      color: #C9A0AA;
+      font-size: 23px;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    .item-delete:active {
+      color: var(--danger);
+      background: rgba(217,107,124,.08);
+    }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      padding: 44px 16px;
+      line-height: 1.8;
+      background: rgba(255,255,255,.55);
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(70, 35, 45, 0.35);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(88vw, 340px);
+      background: white;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 12px 35px rgba(80,35,50,.18);
+    }
+
+    .modal h2 {
+      font-size: 18px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 13px 14px;
+      border: 2px solid var(--line);
+      border-radius: 13px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+
+    .modal input:focus {
+      border-color: var(--pink);
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 13px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background: #F5F1F2;
+      color: #666;
+    }
+
+    .btn-ok {
+      background: var(--pink);
+      color: white;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #A88A91;
+      text-align: center;
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>買い物リスト</h1>
+</header>
+
+<div class="tabs-wrap">
+  <div class="tabs" id="tabs"></div>
+</div>
+
+<main>
+  <div class="input-area">
+    <input type="text" id="itemInput" placeholder="商品を入力..." maxlength="40" autocomplete="off">
+    <button class="add-item-btn" onclick="addItem()" aria-label="商品を追加">+</button>
+  </div>
+
+  <div class="actions">
+    <button onclick="checkAll()">全部チェック</button>
+    <button onclick="clearChecked()">チェック済み削除</button>
+  </div>
+
+  <ul class="item-list" id="itemList"></ul>
+  <div class="hint">お店名は長押し、または右クリックで削除できます</div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>お店を追加</h2>
+    <input type="text" id="shopInput" placeholder="お店の名前" maxlength="20" autocomplete="off">
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-ok" onclick="addShop()">追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let data = JSON.parse(localStorage.getItem("shopping-list") || "null") || {
+    shops: [],
+    items: {}
+  };
+  let currentShop = data.shops[0] || null;
+
+  function save() {
+    localStorage.setItem("shopping-list", JSON.stringify(data));
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function renderTabs() {
+    const tabs = document.getElementById("tabs");
+    tabs.innerHTML = "";
+
+    data.shops.forEach(shop => {
+      const tab = document.createElement("div");
+      tab.className = "tab" + (shop === currentShop ? " active" : "");
+      tab.textContent = shop;
+      tab.onclick = () => {
+        currentShop = shop;
+        renderTabs();
+        renderItems();
+      };
+
+      tab.addEventListener("contextmenu", e => {
+        e.preventDefault();
+        deleteShop(shop);
+      });
+
+      let timer;
+      tab.addEventListener("touchstart", () => {
+        timer = setTimeout(() => deleteShop(shop), 650);
+      }, { passive: true });
+      tab.addEventListener("touchend", () => clearTimeout(timer));
+      tab.addEventListener("touchmove", () => clearTimeout(timer));
+
+      tabs.appendChild(tab);
+    });
+
+    const add = document.createElement("div");
+    add.className = "tab-add";
+    add.textContent = "+";
+    add.onclick = openModal;
+    tabs.appendChild(add);
+  }
+
+  function renderItems() {
+    const list = document.getElementById("itemList");
+
+    if (data.shops.length === 0) {
+      list.innerHTML = '<div class="empty">上の「＋」から<br>お店を追加してください</div>';
+      return;
+    }
+
+    const items = data.items[currentShop] || [];
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty">まだ何もありません<br>商品を入力して追加できます</div>';
+      return;
+    }
+
+    list.innerHTML = "";
+    items.forEach((item, i) => {
+      const li = document.createElement("li");
+      li.className = "item" + (item.checked ? " checked" : "");
+      li.innerHTML = `
+        <div class="item-check" onclick="toggleItem(${i})" aria-label="チェック"></div>
+        <span class="item-name">${escHtml(item.name)}</span>
+        <button class="item-delete" onclick="deleteItem(${i})" aria-label="削除">×</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function addItem() {
+    if (!currentShop) {
+      openModal();
+      return;
+    }
+    const input = document.getElementById("itemInput");
+    const name = input.value.trim();
+    if (!name) return;
+
+    if (!data.items[currentShop]) data.items[currentShop] = [];
+    data.items[currentShop].push({ name, checked: false });
+
+    input.value = "";
+    save();
+    renderItems();
+    input.focus();
+  }
+
+  function toggleItem(i) {
+    data.items[currentShop][i].checked = !data.items[currentShop][i].checked;
+    save();
+    renderItems();
+  }
+
+  function deleteItem(i) {
+    data.items[currentShop].splice(i, 1);
+    save();
+    renderItems();
+  }
+
+  function checkAll() {
+    if (!currentShop) return;
+    (data.items[currentShop] || []).forEach(item => item.checked = true);
+    save();
+    renderItems();
+  }
+
+  function clearChecked() {
+    if (!currentShop) return;
+    data.items[currentShop] = (data.items[currentShop] || []).filter(item => !item.checked);
+    save();
+    renderItems();
+  }
+
+  function openModal() {
+    document.getElementById("modalOverlay").classList.add("open");
+    setTimeout(() => document.getElementById("shopInput").focus(), 60);
+  }
+
+  function closeModal() {
+    document.getElementById("modalOverlay").classList.remove("open");
+    document.getElementById("shopInput").value = "";
+  }
+
+  function addShop() {
+    const input = document.getElementById("shopInput");
+    const name = input.value.trim();
+    if (!name) return;
+
+    if (data.shops.includes(name)) {
+      alert("同じ名前のお店がすでにあります");
+      return;
+    }
+
+    data.shops.push(name);
+    data.items[name] = [];
+    currentShop = name;
+    save();
+    closeModal();
+    renderTabs();
+    renderItems();
+  }
+
+  function deleteShop(shop) {
+    if (!confirm("「" + shop + "」を削除しますか？\\nこのお店の商品もすべて消えます。")) return;
+
+    data.shops = data.shops.filter(s => s !== shop);
+    delete data.items[shop];
+
+    if (currentShop === shop) {
+      currentShop = data.shops[0] || null;
+    }
+
+    save();
+    renderTabs();
+    renderItems();
+  }
+
+  document.getElementById("itemInput").addEventListener("keyup", e => {
+    if (e.key === "Enter") addItem();
+  });
+
+  document.getElementById("shopInput").addEventListener("keyup", e => {
+    if (e.key === "Enter") addShop();
+  });
+
+  document.getElementById("modalOverlay").addEventListener("click", e => {
+    if (e.target === document.getElementById("modalOverlay")) closeModal();
+  });
+
+  renderTabs();
+  renderItems();
+</script>
+</body>
+</html>
