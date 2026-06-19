@@ -111,7 +111,15 @@ function renderEdit(){
    if(el) el.onkeydown=(e)=>{
      if(e.key==='Enter'){
        const v=e.target.value.trim();
-       if(v){data.stores[shop].push(v); save(); renderEdit();}
+       if(v){
+       data.stores[shop].push(v);
+       save();
+       renderEdit();
+       setTimeout(()=>{
+         const next=document.getElementById('add_'+shop);
+         if(next){ next.value=''; next.focus(); }
+       },0);
+     }
      }
    }
  }
