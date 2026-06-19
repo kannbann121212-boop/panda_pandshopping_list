@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>買い物リスト</title>
@@ -47,10 +46,25 @@ let data = JSON.parse(localStorage.getItem('shopping_v10_public')||'null') || {
   'スーパー':['牛乳','卵','食パン','ヨーグルト'],
   'ドラッグストア':['洗剤','ティッシュ']
  },
- selected:{}
+ selected:{},
+ order:['スーパー','ドラッグストア']
 };
 
 function save(){localStorage.setItem('shopping_v10_public',JSON.stringify(data));}
+
+function ensureOrder(){
+ if(!data.order) data.order=[];
+ Object.keys(data.stores).forEach(s=>{ if(!data.order.includes(s)) data.order.push(s); });
+ data.order=data.order.filter(s=>data.stores[s]);
+}
+
+function moveShopTop(shop){
+ ensureOrder();
+ data.order=data.order.filter(s=>s!==shop);
+ data.order.unshift(shop);
+ save();
+ renderHome();
+}
 
 function toggleItem(key){
  data.selected[key]=!data.selected[key];
@@ -71,8 +85,9 @@ function closeEdit(){
 
 function renderHome(){
  let h='';
- for(const shop in data.stores){
-   h+=`<div class="card"><div class="shop">${shop}</div><div class="chips">`;
+ ensureOrder();
+ for(const shop of data.order){
+   h+=`<div class="card"><div class="shop" onclick="moveShopTop(\'${shop}\')" style="cursor:pointer">${shop}</div><div class="chips">`;
    data.stores[shop].forEach(item=>{
       const key=shop+'|'+item;
       h+=`<button class="chip ${data.selected[key]?'active':''}" onclick="toggleItem('${key}')">${item}</button>`;
@@ -82,7 +97,7 @@ function renderHome(){
  home.innerHTML=h;
 }
 
-function deleteShop(shop){delete data.stores[shop]; save(); renderEdit();}
+function deleteShop(shop){delete data.stores[shop]; data.order=data.order.filter(s=>s!==shop); save(); renderEdit();}
 function deleteItem(shop,i){data.stores[shop].splice(i,1); save(); renderEdit();}
 
 function renderEdit(){
@@ -103,7 +118,7 @@ function renderEdit(){
  newShop.onkeydown=(e)=>{
    if(e.key==='Enter'){
      const v=e.target.value.trim();
-     if(v && !data.stores[v]){data.stores[v]=[]; save(); renderEdit();}
+     if(v && !data.stores[v]){data.stores[v]=[]; data.order.push(v); save(); renderEdit();}
    }
  };
 
