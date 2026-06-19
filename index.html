@@ -104,7 +104,8 @@ function renderEdit(){
  let h=`<div class="card"><div class="shop">店舗追加</div>
  <input id="newShop" class="input" placeholder="店舗名を入力してEnter"></div>`;
 
- for(const shop in data.stores){
+ ensureOrder();
+ for(const shop of data.order){
    h+=`<div class="card"><div class="shop">${shop} <button class="del" onclick="deleteShop('${shop}')">✕</button></div>
    <input id="add_${shop}" class="input" placeholder="商品名を入力してEnter"><br><br>`;
 
@@ -122,7 +123,8 @@ function renderEdit(){
    }
  };
 
- for(const shop in data.stores){
+ ensureOrder();
+ for(const shop of data.order){
    const el=document.getElementById('add_'+shop);
    if(el) el.onkeydown=(e)=>{
      if(e.key==='Enter'){
