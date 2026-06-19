@@ -3,225 +3,121 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>買い物リスト 完全版 v3</title>
+<title>買い物リスト</title>
 <style>
-body{margin:0;font-family:-apple-system,sans-serif;background:#fff7f8;color:#444;padding-bottom:70px}
-header{background:#e7a3b1;color:#fff;padding:14px;text-align:center;font-weight:bold}
-main{padding:12px;max-width:900px;margin:auto}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff7f8;color:#444}
+.header{position:sticky;top:0;background:#fff;padding:16px;border-bottom:1px solid #eee;text-align:center}
+.title{font-size:28px;font-weight:bold}
+.editBtn,.backBtn{border:none;background:#f4d7df;border-radius:12px;padding:10px 14px;font-size:16px;cursor:pointer}
+.editBtn{position:absolute;right:16px;top:14px}
+.backWrap{padding:12px}
+.container{padding:12px}
 .card{background:#fff;border-radius:14px;padding:12px;margin-bottom:12px}
+.shop{font-size:22px;font-weight:bold;color:#d97a8e;margin-bottom:10px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip,.buychip{border:none;border-radius:18px;padding:10px 14px;cursor:pointer}
-.chip{background:#f4d7df}
-.chip.active,.buychip{background:#d97a8e;color:#fff}
-.tabs{display:flex;gap:6px;overflow:auto;margin-bottom:10px}
-.tabs button{border:none;padding:8px 12px;border-radius:16px;background:#f4d7df;white-space:nowrap}
-.tabs button.active{background:#d97a8e;color:#fff}
-.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #ddd;display:flex}
-.bottom button{flex:1;border:none;background:#fff;padding:14px}
-.bottom button.active{background:#f4d7df}
-.input{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box}
-.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
-.del{border:none;background:none;color:#c66;font-size:18px;cursor:pointer}
-.page{display:none}
-.page.active{display:block}
+.chip{border:none;border-radius:18px;padding:10px 14px;font-size:18px;cursor:pointer;background:#f4d7df}
+.chip.active{background:#d97a8e;color:#fff}
+.input{width:100%;padding:12px;font-size:18px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box}
+.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:18px}
+.del{border:none;background:none;color:#c66;font-size:20px;cursor:pointer}
+.hidden{display:none}
 </style>
 </head>
 <body>
-<header>買い物リスト</header>
 
-<main>
-<div id="favPage" class="page active"></div>
-<div id="buyPage" class="page"></div>
-<div id="editPage" class="page"></div>
-</main>
+<div id="homePage">
+  <div class="header">
+    <div class="title">買い物リスト</div>
+    <button class="editBtn" onclick="openEdit()">編集</button>
+  </div>
+  <div id="home" class="container"></div>
+</div>
 
-<div class="bottom">
-<button id="tabFav" class="active" onclick="showPage('fav')">よく買うもの</button>
-<button id="tabBuy" onclick="showPage('buy')">今回買うもの</button>
-<button id="tabEdit" onclick="showPage('edit')">編集</button>
+<div id="editPage" class="hidden">
+  <div class="backWrap">
+    <button class="backBtn" onclick="closeEdit()">← 戻る</button>
+  </div>
+  <div id="editContent" class="container"></div>
 </div>
 
 <script>
-let data=JSON.parse(localStorage.getItem('shopping_complete_v3')||'null')||{
+let data = JSON.parse(localStorage.getItem('shopping_v10_public')||'null') || {
  stores:{
-  'スーパー':['牛乳','卵','食パン','ヨーグルト','バナナ'],
-  'ドラッグストア':['洗剤','ティッシュ'],
-  'セリア':['電池','ゴミ袋']
+  'スーパー':['牛乳','卵','食パン','ヨーグルト'],
+  'ドラッグストア':['洗剤','ティッシュ']
  },
- buying:{
-  'スーパー':[],
-  'ドラッグストア':[],
-  'セリア':[]
- }
+ selected:{}
 };
 
-let currentShop=Object.keys(data.stores)[0]||'';
+function save(){localStorage.setItem('shopping_v10_public',JSON.stringify(data));}
 
-function save(){
- localStorage.setItem('shopping_complete_v3',JSON.stringify(data));
+function toggleItem(key){
+ data.selected[key]=!data.selected[key];
+ save(); renderHome();
 }
 
-function showPage(page){
- document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
- document.querySelectorAll('.bottom button').forEach(b=>b.classList.remove('active'));
-
- if(page==='fav'){favPage.classList.add('active');tabFav.classList.add('active');}
- if(page==='buy'){buyPage.classList.add('active');tabBuy.classList.add('active');}
- if(page==='edit'){editPage.classList.add('active');tabEdit.classList.add('active');}
-}
-
-function addToBuy(shop,item){
- if(!data.buying[shop].includes(item)){
-   data.buying[shop].push(item);
- }
- render();
-}
-
-function bought(shop,item){
- data.buying[shop]=data.buying[shop].filter(v=>v!==item);
- render();
-}
-
-function renderFav(){
- let html='';
- for(const shop in data.stores){
-   html+=`<div class="card"><h3>${shop}</h3><div class="chips">`;
-   data.stores[shop].forEach(item=>{
-      const active=data.buying[shop].includes(item);
-      html+=`<button class="chip ${active?'active':''}" onclick="addToBuy('${shop}','${item}')">${item}</button>`;
-   });
-   html+='</div></div>';
- }
- favPage.innerHTML=html;
-}
-
-function renderBuy(){
- let tabs='<div class="tabs">';
- for(const shop in data.stores){
-   tabs+=`<button class="${shop===currentShop?'active':''}" onclick="changeShop('${shop}')">${shop} (${data.buying[shop].length})</button>`;
- }
- tabs+='</div>';
-
- let html=tabs+`<div class="card"><h3>${currentShop}</h3><div class="chips">`;
-
- (data.buying[currentShop]||[]).forEach(item=>{
-   html+=`<button class="buychip" onclick="bought('${currentShop}','${item}')">${item}</button>`;
- });
-
- html+=`</div><hr>
- <input id="quickItem" class="input" placeholder="その他買うものを入力してEnter">
- </div>`;
-
- buyPage.innerHTML=html;
-
- const q=document.getElementById('quickItem');
- if(q){
-   q.onkeydown=function(e){
-     if(e.key==='Enter'){
-       const v=this.value.trim();
-       if(!v)return;
-
-       if(!data.buying[currentShop].includes(v)){
-          data.buying[currentShop].push(v);
-       }
-
-       if(!data.stores[currentShop].includes(v)){
-          data.stores[currentShop].push(v);
-       }
-
-       render();
-     }
-   }
- }
-}
-
-function changeShop(shop){
- currentShop=shop;
- renderBuy();
-}
-
-function renderEdit(){
- let html=`
- <div class="card">
- <h3>店舗追加</h3>
- <input id="newShop" class="input" placeholder="店舗名を入力してEnter">
- </div>`;
-
- for(const shop in data.stores){
-   html+=`<div class="card">
-   <h3>${shop} <button class="del" onclick="deleteShop('${shop}')">✕</button></h3>
-
-   <input id="add_${shop}" class="input" placeholder="商品名を入力してEnter">`;
-
-   data.stores[shop].forEach((item,index)=>{
-      html+=`<div class="row">
-      <span>${item}</span>
-      <button class="del" onclick="deleteItem('${shop}',${index})">✕</button>
-      </div>`;
-   });
-
-   html+='</div>';
- }
-
- editPage.innerHTML=html;
-
- const shopInput=document.getElementById('newShop');
- if(shopInput){
-   shopInput.onkeydown=function(e){
-     if(e.key==='Enter'){
-       const v=this.value.trim();
-       if(!v || data.stores[v]) return;
-
-       data.stores[v]=[];
-       data.buying[v]=[];
-       currentShop=v;
-       render();
-     }
-   }
- }
-
- for(const shop in data.stores){
-   const input=document.getElementById('add_'+shop);
-   if(input){
-     input.onkeydown=function(e){
-       if(e.key==='Enter'){
-         const v=this.value.trim();
-         if(!v) return;
-
-         if(!data.stores[shop].includes(v)){
-            data.stores[shop].push(v);
-         }
-
-         render();
-       }
-     }
-   }
- }
-}
-
-function deleteItem(shop,index){
- data.stores[shop].splice(index,1);
- render();
-}
-
-function deleteShop(shop){
- if(!confirm(shop+' を削除しますか？')) return;
-
- delete data.stores[shop];
- delete data.buying[shop];
-
- currentShop=Object.keys(data.stores)[0]||'';
- render();
-}
-
-function render(){
- save();
- renderFav();
- renderBuy();
+function openEdit(){
+ homePage.classList.add('hidden');
+ editPage.classList.remove('hidden');
  renderEdit();
 }
 
-render();
+function closeEdit(){
+ editPage.classList.add('hidden');
+ homePage.classList.remove('hidden');
+ renderHome();
+}
+
+function renderHome(){
+ let h='';
+ for(const shop in data.stores){
+   h+=`<div class="card"><div class="shop">${shop}</div><div class="chips">`;
+   data.stores[shop].forEach(item=>{
+      const key=shop+'|'+item;
+      h+=`<button class="chip ${data.selected[key]?'active':''}" onclick="toggleItem('${key}')">${item}</button>`;
+   });
+   h+='</div></div>';
+ }
+ home.innerHTML=h;
+}
+
+function deleteShop(shop){delete data.stores[shop]; save(); renderEdit();}
+function deleteItem(shop,i){data.stores[shop].splice(i,1); save(); renderEdit();}
+
+function renderEdit(){
+ let h=`<div class="card"><div class="shop">店舗追加</div>
+ <input id="newShop" class="input" placeholder="店舗名を入力してEnter"></div>`;
+
+ for(const shop in data.stores){
+   h+=`<div class="card"><div class="shop">${shop} <button class="del" onclick="deleteShop('${shop}')">✕</button></div>
+   <input id="add_${shop}" class="input" placeholder="商品名を入力してEnter"><br><br>`;
+
+   data.stores[shop].forEach((item,i)=>{
+      h+=`<div class="row"><span>${item}</span><button class="del" onclick="deleteItem('${shop}',${i})">✕</button></div>`;
+   });
+   h+='</div>';
+ }
+ editContent.innerHTML=h;
+
+ newShop.onkeydown=(e)=>{
+   if(e.key==='Enter'){
+     const v=e.target.value.trim();
+     if(v && !data.stores[v]){data.stores[v]=[]; save(); renderEdit();}
+   }
+ };
+
+ for(const shop in data.stores){
+   const el=document.getElementById('add_'+shop);
+   if(el) el.onkeydown=(e)=>{
+     if(e.key==='Enter'){
+       const v=e.target.value.trim();
+       if(v){data.stores[shop].push(v); save(); renderEdit();}
+     }
+   }
+ }
+}
+
+renderHome();
 </script>
 </body>
 </html>
