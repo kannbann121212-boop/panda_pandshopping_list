@@ -1,150 +1,243 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>買い物リスト</title>
+<title>買い物リスト v14</title>
 <style>
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff7f8;color:#444}
-.header{position:sticky;top:0;background:#fff;padding:16px;border-bottom:1px solid #eee;text-align:center}
+.header{position:sticky;top:0;background:#fff;padding:14px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;z-index:10}
 .title{font-size:28px;font-weight:bold}
-.editBtn,.backBtn{border:none;background:#f4d7df;border-radius:12px;padding:10px 14px;font-size:16px;cursor:pointer}
-.editBtn{position:absolute;right:16px;top:14px}
-.backWrap{padding:12px}
+.storeAdd{border:none;background:#d97a8e;color:#fff;border-radius:12px;padding:12px 16px;font-size:18px;cursor:pointer}
 .container{padding:12px}
-.card{background:#fff;border-radius:14px;padding:12px;margin-bottom:12px}
-.shop{font-size:22px;font-weight:bold;color:#d97a8e;margin-bottom:10px}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:none;border-radius:18px;padding:10px 14px;font-size:18px;cursor:pointer;background:#f4d7df}
+.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.shopRow{display:flex;align-items:center;gap:8px}
+.shop{flex:1;font-size:24px;font-weight:bold;color:#d97a8e;cursor:pointer}
+.btn{border:none;background:#f4d7df;border-radius:10px;padding:8px 12px;font-size:18px;cursor:pointer}
+.inputWrap{display:none;margin-top:10px}
+.input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ddd;border-radius:12px;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{position:relative;border:none;border-radius:18px;padding:10px 14px;font-size:18px;background:#f4d7df;cursor:pointer}.deleteModeBtn{background:#ffb8c6!important}.chipWrap{position:relative;display:inline-block}.deleteX{position:absolute;right:-6px;top:-6px;width:22px;height:22px;border-radius:50%;border:none;background:#fff;color:#d97a8e;font-weight:bold;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .chip.active{background:#d97a8e;color:#fff}
-.input{width:100%;padding:12px;font-size:18px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box}
-.row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:18px}
-.del{border:none;background:none;color:#c66;font-size:20px;cursor:pointer}
-.hidden{display:none}
+.menu{position:fixed;background:white;border:1px solid #ddd;border-radius:12px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);display:none;z-index:1000}
+.menu button{display:block;width:100%;border:none;background:none;padding:10px;cursor:pointer;text-align:left}
 </style>
 </head>
 <body>
 
-<div id="homePage">
-  <div class="header">
-    <div class="title">買い物リスト</div>
-    <button class="editBtn" onclick="openEdit()">編集</button>
-  </div>
-  <div id="home" class="container"></div>
+<div class="header">
+<div class="title">買い物リスト</div>
+<button class="storeAdd" onclick="addStore()">店舗＋</button>
 </div>
 
-<div id="editPage" class="hidden">
-  <div class="backWrap">
-    <button class="backBtn" onclick="closeEdit()">← 戻る</button>
-  </div>
-  <div id="editContent" class="container"></div>
+<div id="home" class="container"></div>
+
+<div id="shopMenu" class="menu">
+<button onclick="renameStore()">✏️ 店舗名変更</button>
+<button onclick="deleteStore()">🗑️ 店舗削除</button>
+</div>
+
+<div id="itemMenu" class="menu">
+<button onclick="renameItem()">✏️ 商品名変更</button>
+<button onclick="deleteItem()">🗑️ 商品削除</button>
 </div>
 
 <script>
-let data = JSON.parse(localStorage.getItem('shopping_v10_public')||'null') || {
- stores:{
-  'スーパー':['牛乳','卵','食パン','ヨーグルト'],
-  'ドラッグストア':['洗剤','ティッシュ']
- },
- selected:{},
- order:['スーパー','ドラッグストア']
+let currentShop=null,currentItem=null;
+
+let deleteMode = {};
+
+function toggleDeleteMode(shop){
+ deleteMode[shop] = !deleteMode[shop];
+ render();
+}
+
+
+let data=JSON.parse(localStorage.getItem('shopping_v14')||'null')||{
+stores:{
+'スーパー':['牛乳','卵','食パン'],
+'ドラッグストア':['洗剤','ティッシュ']
+},
+selected:{},
+order:['スーパー','ドラッグストア']
 };
 
-function save(){localStorage.setItem('shopping_v10_public',JSON.stringify(data));}
+function save(){localStorage.setItem('shopping_v14',JSON.stringify(data));}
 
-function ensureOrder(){
- if(!data.order) data.order=[];
- Object.keys(data.stores).forEach(s=>{ if(!data.order.includes(s)) data.order.push(s); });
+function ensure(){
+ if(!data.order)data.order=[];
+ Object.keys(data.stores).forEach(s=>{if(!data.order.includes(s))data.order.push(s)});
  data.order=data.order.filter(s=>data.stores[s]);
 }
 
-function moveShopTop(shop){
- ensureOrder();
+function addStore(){
+ const n=prompt('店舗名');
+ if(!n||data.stores[n]) return;
+ data.stores[n]=[];
+ data.order.push(n);
+ save();render();
+}
+
+function moveTop(shop){
  data.order=data.order.filter(s=>s!==shop);
  data.order.unshift(shop);
  save();
- renderHome();
+ render();
+ window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function toggleItem(key){
  data.selected[key]=!data.selected[key];
- save(); renderHome();
+ save();render();
 }
 
-function openEdit(){
- homePage.classList.add('hidden');
- editPage.classList.remove('hidden');
- renderEdit();
+function toggleInput(shop){
+ const el=document.getElementById('wrap_'+css(shop));
+ el.style.display=el.style.display==='block'?'none':'block';
+ if(el.style.display==='block'){
+  setTimeout(()=>document.getElementById('input_'+css(shop)).focus(),50);
+ }
 }
 
-function closeEdit(){
- editPage.classList.add('hidden');
- homePage.classList.remove('hidden');
- renderHome();
+function css(t){return btoa(unescape(encodeURIComponent(t))).replace(/=/g,'');}
+
+function showShopMenu(e,shop){
+ e.stopPropagation();
+ currentShop=shop;
+ const m=document.getElementById('shopMenu');
+ m.style.left=e.pageX+'px';
+ m.style.top=e.pageY+'px';
+ m.style.display='block';
 }
 
-function renderHome(){
+function renameStore(){
+ const n=prompt('新しい店舗名',currentShop);
+ if(!n||n===currentShop) return closeMenus();
+ data.stores[n]=data.stores[currentShop];
+ delete data.stores[currentShop];
+ data.order=data.order.map(x=>x===currentShop?n:x);
+ save(); render(); closeMenus();
+}
+
+function deleteStore(){
+ if(confirm(currentShop+'を削除しますか？')){
+  delete data.stores[currentShop];
+  data.order=data.order.filter(x=>x!==currentShop);
+  save(); render();
+ }
+ closeMenus();
+}
+
+function showItemMenu(e,shop,item){
+ e.preventDefault();
+ currentShop=shop;
+ currentItem=item;
+ const m=document.getElementById('itemMenu');
+ m.style.left=e.pageX+'px';
+ m.style.top=e.pageY+'px';
+ m.style.display='block';
+}
+
+function renameItem(){
+ const n=prompt('新しい商品名',currentItem);
+ if(!n) return closeMenus();
+ const arr=data.stores[currentShop];
+ const i=arr.indexOf(currentItem);
+ if(i>=0) arr[i]=n;
+ save(); render(); closeMenus();
+}
+
+function deleteItem(){
+ const arr=data.stores[currentShop];
+ const i=arr.indexOf(currentItem);
+ if(i>=0) arr.splice(i,1);
+ save(); render(); closeMenus();
+}
+
+
+function deleteItemDirect(shop,item){
+ const arr=data.stores[shop];
+ const i=arr.indexOf(item);
+ if(i>=0) arr.splice(i,1);
+ save();
+ render();
+}
+
+function closeMenus(){
+ document.getElementById('shopMenu').style.display='none';
+ document.getElementById('itemMenu').style.display='none';
+}
+
+document.addEventListener('click',closeMenus);
+
+function addItem(shop,val){
+ val=val.trim();
+ if(!val)return;
+ data.stores[shop].push(val);
+ save();
+ render(shop);
+}
+
+function render(focusShop=null){
+ ensure();
  let h='';
- ensureOrder();
  for(const shop of data.order){
-   h+=`<div class="card"><div class="shop" onclick="moveShopTop(\'${shop}\')" style="cursor:pointer">${shop}</div><div class="chips">`;
-   data.stores[shop].forEach(item=>{
-      const key=shop+'|'+item;
-      h+=`<button class="chip ${data.selected[key]?'active':''}" onclick="toggleItem('${key}')">${item}</button>`;
-   });
-   h+='</div></div>';
+ const id=css(shop);
+ h+=`<div class="card">
+ <div class="shopRow">
+ <div class="shop" onclick="moveTop('${shop.replace(/'/g,"&#39;")}')">${shop}</div>
+ <button class="btn" onclick="toggleInput('${shop.replace(/'/g,"&#39;")}')">＋</button>
+ <button class="btn ${deleteMode[shop]?'deleteModeBtn':''}" onclick="toggleDeleteMode('${shop.replace(/'/g,"&#39;")}')">－</button>
+ <button class="btn" onclick="showShopMenu(event,'${shop.replace(/'/g,"&#39;")}')">︙</button>
+ </div>
+
+ <div class="inputWrap" id="wrap_${id}">
+ <input class="input" id="input_${id}" placeholder="商品名を入力してEnter">
+ </div>
+
+ <div class="chips">`;
+
+ data.stores[shop].forEach(item=>{
+ const key=shop+'|'+item;
+ if(deleteMode[shop]){
+ h+=`<div class="chipWrap"><button class="chip">${item}</button><button class="deleteX" onclick="event.stopPropagation();deleteItemDirect('${shop.replace(/'/g,"&#39;")}','${item.replace(/'/g,"&#39;")}')">×</button></div>`;
+}else{
+ h+=`<button class="chip ${data.selected[key]?'active':''}" 
+ onclick="toggleItem('${key.replace(/'/g,"&#39;")}')"
+ oncontextmenu="showItemMenu(event,'${shop.replace(/'/g,"&#39;")}','${item.replace(/'/g,"&#39;")}');return false;">
+ ${item}</button>`;
+ }
+ });
+
+
+ h+='</div></div>';
  }
  home.innerHTML=h;
-}
 
-function deleteShop(shop){delete data.stores[shop]; data.order=data.order.filter(s=>s!==shop); save(); renderEdit();}
-function deleteItem(shop,i){data.stores[shop].splice(i,1); save(); renderEdit();}
-
-function renderEdit(){
- let h=`<div class="card"><div class="shop">店舗追加</div>
- <input id="newShop" class="input" placeholder="店舗名を入力してEnter"></div>`;
-
- ensureOrder();
  for(const shop of data.order){
-   h+=`<div class="card"><div class="shop">${shop} <button class="del" onclick="deleteShop('${shop}')">✕</button></div>
-   <input id="add_${shop}" class="input" placeholder="商品名を入力してEnter"><br><br>`;
-
-   data.stores[shop].forEach((item,i)=>{
-      h+=`<div class="row"><span>${item}</span><button class="del" onclick="deleteItem('${shop}',${i})">✕</button></div>`;
-   });
-   h+='</div>';
+  const id=css(shop);
+  const el=document.getElementById('input_'+id);
+  if(el){
+   el.onkeydown=(e)=>{
+    if(e.key==='Enter'){
+      const v=el.value;
+      el.value='';
+      addItem(shop,v);
+    }
+   }
+  }
  }
- editContent.innerHTML=h;
 
- newShop.onkeydown=(e)=>{
-   if(e.key==='Enter'){
-     const v=e.target.value.trim();
-     if(v && !data.stores[v]){data.stores[v]=[]; data.order.push(v); save(); renderEdit();}
-   }
- };
-
- ensureOrder();
- for(const shop of data.order){
-   const el=document.getElementById('add_'+shop);
-   if(el) el.onkeydown=(e)=>{
-     if(e.key==='Enter'){
-       const v=e.target.value.trim();
-       if(v){
-       data.stores[shop].push(v);
-       save();
-       renderEdit();
-       setTimeout(()=>{
-         const next=document.getElementById('add_'+shop);
-         if(next){ next.value=''; next.focus(); }
-       },0);
-     }
-     }
-   }
+ if(focusShop){
+  const id=css(focusShop);
+  const wrap=document.getElementById('wrap_'+id);
+  if(wrap){
+   wrap.style.display='block';
+   document.getElementById('input_'+id).focus();
+  }
  }
 }
-
-renderHome();
+render();
 </script>
 </body>
 </html>
