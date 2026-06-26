@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><link rel="icon" href="favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="favicon.png">
-<meta name="theme-color" content="#d97a8e">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>買い物リスト </title>
+<title>買い物リスト v14</title>
 <style>
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff7f8;color:#444}
 .header{position:sticky;top:0;background:#fff;padding:14px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;z-index:10}
@@ -206,9 +204,7 @@ function render(focusShop=null){
  </div>
 
  <div class="inputWrap" id="wrap_${id}">
- <form id="form_${id}" onsubmit="return false;">
- <input class="input" id="input_${id}" placeholder="商品名を入力して完了">
- </form>
+ <input class="input" id="input_${id}" placeholder="商品名を入力してEnter">
  </div>
 
  <div class="chips">`;
@@ -236,13 +232,17 @@ function render(focusShop=null){
   if(el){
    el.onkeydown=(e)=>{
     if(e.key==='Enter'){
-      const v=el.value;
+      const input=el;
+      const v=input.value;
+      input.value='';
       addItem(shop,v);
-      const input=document.getElementById('input_'+id);
-      if(input){
-        input.value='';
-        input.focus();
-      }
+      setTimeout(()=>{
+        const fresh=document.getElementById('input_'+id);
+        if(fresh){
+          fresh.value='';
+          fresh.focus();
+        }
+      },0);
     }
    }
   }
