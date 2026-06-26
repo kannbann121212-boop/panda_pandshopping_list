@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><link rel="icon" href="icon.png">
-<link rel="apple-touch-icon" href="icon.png">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>買い物リスト
+<title>買い物リスト v14</title>
 <style>
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff7f8;color:#444}
 .header{position:sticky;top:0;background:#fff;padding:14px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;z-index:10}
@@ -174,7 +173,19 @@ document.addEventListener('click',closeMenus);
 function addItem(shop,val){
  val=val.trim();
  if(!val)return;
+
+ const normalized=val.replace(/\s+/g,'');
+ const existing=data.stores[shop].find(item=>item.replace(/\s+/g,'')===normalized);
+
+ if(existing){
+   data.selected[shop+'|'+existing]=true;
+   save();
+   render(shop);
+   return;
+ }
+
  data.stores[shop].push(val);
+ data.selected[shop+'|'+val]=true;
  save();
  render(shop);
 }
@@ -221,9 +232,17 @@ function render(focusShop=null){
   if(el){
    el.onkeydown=(e)=>{
     if(e.key==='Enter'){
-      const v=el.value;
-      el.value='';
+      const input=el;
+      const v=input.value;
+      input.value='';
       addItem(shop,v);
+      setTimeout(()=>{
+        const fresh=document.getElementById('input_'+id);
+        if(fresh){
+          fresh.value='';
+          fresh.focus();
+        }
+      },0);
     }
    }
   }
