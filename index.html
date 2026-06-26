@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head><link rel="icon" href="icon.png">
-<link rel="apple-touch-icon" href="icon.png">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>買い物リスト v14</title>
@@ -205,7 +204,9 @@ function render(focusShop=null){
  </div>
 
  <div class="inputWrap" id="wrap_${id}">
- <input class="input" id="input_${id}" placeholder="商品名を入力してEnter">
+ <form id="form_${id}" onsubmit="return false;">
+ <input class="input" id="input_${id}" placeholder="商品名を入力して完了">
+ </form>
  </div>
 
  <div class="chips">`;
@@ -233,17 +234,13 @@ function render(focusShop=null){
   if(el){
    el.onkeydown=(e)=>{
     if(e.key==='Enter'){
-      const input=el;
-      const v=input.value;
-      input.value='';
+      const v=el.value;
       addItem(shop,v);
-      setTimeout(()=>{
-        const fresh=document.getElementById('input_'+id);
-        if(fresh){
-          fresh.value='';
-          fresh.focus();
-        }
-      },0);
+      const input=document.getElementById('input_'+id);
+      if(input){
+        input.value='';
+        input.focus();
+      }
     }
    }
   }
