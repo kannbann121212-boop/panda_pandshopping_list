@@ -242,7 +242,13 @@ function addItem(shop,val){
 function render(focusShop=null){
  ensure();
  let h='';
- for(const shop of data.order){
+ const shopOrder=[...data.order];
+ shopOrder.sort((s1,s2)=>{
+  const has1=data.stores[s1].some(item=>data.selected[s1+'|'+item])?1:0;
+  const has2=data.stores[s2].some(item=>data.selected[s2+'|'+item])?1:0;
+  return has2-has1;
+ });
+ for(const shop of shopOrder){
  const id=css(shop);
  const visibleItems=data.stores[shop].filter(item=>!shoppingMode||data.selected[shop+'|'+item]);
  visibleItems.sort((a,b)=>{
