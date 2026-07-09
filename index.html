@@ -24,7 +24,23 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background
 .inputWrap{display:none;margin-top:10px}
 .input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ddd;border-radius:12px;font-size:18px}
 .chips{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin-top:12px}.card{overflow:hidden}
-.chip{position:relative;border:none;border-radius:18px;padding:10px 14px;font-size:18px;background:#f4d7df;cursor:pointer}.deleteModeBtn{background:#ffb8c6!important}.chipWrap{position:relative;display:flex;flex:0 0 auto}.deleteX{position:absolute;right:-6px;top:-6px;width:22px;height:22px;border-radius:50%;border:none;background:#fff;color:#d97a8e;font-weight:bold;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.chip{
+position:relative;
+border:none;
+border-radius:18px;
+padding:10px 14px;
+font-size:18px;
+background:#f4d7df;
+cursor:pointer;
+transition:transform .22s ease,opacity .22s ease,background-color .2s ease;
+will-change:transform;
+}.chipWrap{
+position:relative;
+display:flex;
+flex:0 0 auto;
+transition:transform .22s ease;
+will-change:transform;
+}.deleteX{position:absolute;right:-6px;top:-6px;width:22px;height:22px;border-radius:50%;border:none;background:#fff;color:#d97a8e;font-weight:bold;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .chip.active{background:#d97a8e;color:#fff}
 .menu{position:fixed;background:white;border:1px solid #ddd;border-radius:12px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);display:none;z-index:1000}
 .menu button{display:block;width:100%;border:none;background:none;padding:10px;cursor:pointer;text-align:left}
@@ -63,7 +79,7 @@ let currentShop=null,currentItem=null;
 let shoppingMode=false;
 
 let deleteMode = {};
-
+let flipRects = new Map();
 function toggleDeleteMode(shop){
  deleteMode[shop] = !deleteMode[shop];
  render();
@@ -88,6 +104,7 @@ function save(){localStorage.setItem('shopping_v14',JSON.stringify(data));}
 
 function ensure(){
  if(!data.order)data.order=[];
+ if(!data.count)data.count={};
  Object.keys(data.stores).forEach(s=>{if(!data.order.includes(s))data.order.push(s)});
  data.order=data.order.filter(s=>data.stores[s]);
 }
@@ -110,6 +127,10 @@ function moveTop(shop){
 
 function toggleItem(key){
  data.selected[key]=!data.selected[key];
+ if(data.selected[key]){
+  if(!data.count)data.count={};
+  data.count[key]=(data.count[key]||0)+1;
+ }
  save();render();
 }
 
@@ -199,15 +220,21 @@ function addItem(shop,val){
  const normalized=val.replace(/\s+/g,'');
  const existing=data.stores[shop].find(item=>item.replace(/\s+/g,'')===normalized);
 
+ if(!data.count)data.count={};
+
  if(existing){
-   data.selected[shop+'|'+existing]=true;
+   const k=shop+'|'+existing;
+   data.selected[k]=true;
+   data.count[k]=(data.count[k]||0)+1;
    save();
    render(shop);
    return;
  }
 
  data.stores[shop].push(val);
- data.selected[shop+'|'+val]=true;
+ const k2=shop+'|'+val;
+ data.selected[k2]=true;
+ data.count[k2]=(data.count[k2]||0)+1;
  save();
  render(shop);
 }
@@ -218,6 +245,13 @@ function render(focusShop=null){
  for(const shop of data.order){
  const id=css(shop);
  const visibleItems=data.stores[shop].filter(item=>!shoppingMode||data.selected[shop+'|'+item]);
+ visibleItems.sort((a,b)=>{
+  const ka=shop+'|'+a, kb=shop+'|'+b;
+  const selA=data.selected[ka]?1:0, selB=data.selected[kb]?1:0;
+  if(selA!==selB) return selB-selA;
+  const cA=(data.count&&data.count[ka])||0, cB=(data.count&&data.count[kb])||0;
+  return cB-cA;
+ });
  if(shoppingMode&&visibleItems.length===0) continue;
  h+=`<div class="card">
  <div class="shopRow">
@@ -251,8 +285,41 @@ function render(focusShop=null){
  if(!h&&shoppingMode){
   h='<div class="empty">選んだものはまだありません</div>';
  }
- home.innerHTML=h;
- const modeBtn=document.getElementById('shoppingModeBtn');
+ flipRects.clear();
+
+document.querySelectorAll('.chip,.chipWrap').forEach(el=>{
+  const key = el.textContent.trim();
+  flipRects.set(key, el.getBoundingClientRect());
+});
+
+home.innerHTML=h;
+requestAnimationFrame(()=>{
+
+  document.querySelectorAll('.chip,.chipWrap').forEach(el=>{
+
+    const key = el.textContent.trim();
+    const oldRect = flipRects.get(key);
+
+    if(!oldRect) return;
+
+    const newRect = el.getBoundingClientRect();
+
+    const dx = oldRect.left - newRect.left;
+    const dy = oldRect.top - newRect.top;
+
+    if(dx || dy){
+
+      el.style.transform = `translate(${dx}px,${dy}px)`;
+
+      requestAnimationFrame(()=>{
+        el.style.transform = '';
+      });
+
+    }
+
+  });
+
+}); const modeBtn=document.getElementById('shoppingModeBtn');
  if(modeBtn){
   modeBtn.classList.toggle('active',shoppingMode);
   modeBtn.textContent=shoppingMode?'通常表示':'買うものだけ';
