@@ -9,27 +9,29 @@
 <title>買い物リスト</title>
 <style>
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#fff7f8;color:#444}
-.header{position:sticky;top:0;background:#fff;padding:14px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;z-index:10}
-.title{font-size:28px;font-weight:bold}
-.topActions{display:flex;gap:8px;align-items:center}
-.storeAdd{border:none;background:#d97a8e;color:#fff;border-radius:12px;padding:12px 16px;font-size:18px;cursor:pointer}
-.shoppingMode{border:none;background:#f4d7df;color:#7d3f4e;border-radius:12px;padding:12px 14px;font-size:18px;cursor:pointer}
+.header{position:sticky;top:0;background:#fff;padding:13px 15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;z-index:10}
+.title{font-size:26px;font-weight:bold}
+.topActions{display:flex;gap:7px;align-items:center}
+.storeAdd{border:none;background:#d97a8e;color:#fff;border-radius:12px;padding:11px 14px;font-size:17px;cursor:pointer}
+.shoppingMode{border:none;background:#f4d7df;color:#7d3f4e;border-radius:12px;padding:11px 13px;font-size:17px;cursor:pointer}
 .shoppingMode.active{background:#d97a8e;color:#fff}
-.container{padding:12px}
-.card{background:#fff;border-radius:16px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.container{padding:11px}
+.card{background:#fff;border-radius:16px;padding:13px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .empty{background:#fff;border-radius:16px;padding:18px;margin:12px;color:#9a6571;text-align:center;font-size:18px}
-.shopRow{display:flex;align-items:center;gap:8px}
-.shop{flex:1;font-size:24px;font-weight:bold;color:#d97a8e;cursor:pointer}
-.btn{border:none;background:#f4d7df;border-radius:10px;padding:8px 12px;font-size:18px;cursor:pointer}
-.inputWrap{display:none;margin-top:10px}
-.input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #ddd;border-radius:12px;font-size:18px}
-.chips{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin-top:12px}.card{overflow:hidden}
+.shopRow{display:flex;align-items:center;gap:7px}
+.shop{flex:1;font-size:22px;font-weight:bold;color:#d97a8e;cursor:pointer}
+.btn{border:none;background:#f4d7df;border-radius:10px;padding:7px 11px;font-size:17px;cursor:pointer}
+.btn.deleteModeBtn{background:#d97a8e;color:#fff}
+.inputWrap{margin-top:9px}
+.collapseBtn{min-width:34px;text-align:center}
+.input{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ddd;border-radius:12px;font-size:17px}
+.chips{display:flex;flex-wrap:wrap;align-items:flex-start;gap:5px;margin-top:11px}.card{overflow:hidden}
 .chip{
 position:relative;
 border:none;
 border-radius:18px;
-padding:10px 14px;
-font-size:18px;
+padding:9px 13px;
+font-size:17px;
 background:#f4d7df;
 cursor:pointer;
 transition:transform .22s ease,opacity .22s ease,background-color .2s ease;
@@ -105,6 +107,7 @@ function save(){localStorage.setItem('shopping_v14',JSON.stringify(data));}
 function ensure(){
  if(!data.order)data.order=[];
  if(!data.count)data.count={};
+ if(!data.collapsed)data.collapsed={};
  Object.keys(data.stores).forEach(s=>{if(!data.order.includes(s))data.order.push(s)});
  data.order=data.order.filter(s=>data.stores[s]);
 }
@@ -134,12 +137,11 @@ function toggleItem(key){
  save();render();
 }
 
-function toggleInput(shop){
- const el=document.getElementById('wrap_'+css(shop));
- el.style.display=el.style.display==='block'?'none':'block';
- if(el.style.display==='block'){
-  setTimeout(()=>document.getElementById('input_'+css(shop)).focus(),50);
- }
+function toggleCollapse(shop){
+ if(!data.collapsed)data.collapsed={};
+ data.collapsed[shop]=!data.collapsed[shop];
+ save();
+ render();
 }
 
 function css(t){return btoa(unescape(encodeURIComponent(t))).replace(/=/g,'');}
@@ -191,6 +193,7 @@ function renameItem(){
 }
 
 function deleteItem(){
+ if(!confirm(currentItem+'を削除しますか？')) return closeMenus();
  const arr=data.stores[currentShop];
  const i=arr.indexOf(currentItem);
  if(i>=0) arr.splice(i,1);
@@ -199,6 +202,7 @@ function deleteItem(){
 
 
 function deleteItemDirect(shop,item){
+ if(!confirm(item+'を削除しますか？')) return;
  const arr=data.stores[shop];
  const i=arr.indexOf(item);
  if(i>=0) arr.splice(i,1);
@@ -243,11 +247,6 @@ function render(focusShop=null){
  ensure();
  let h='';
  const shopOrder=[...data.order];
- shopOrder.sort((s1,s2)=>{
-  const has1=data.stores[s1].some(item=>data.selected[s1+'|'+item])?1:0;
-  const has2=data.stores[s2].some(item=>data.selected[s2+'|'+item])?1:0;
-  return has2-has1;
- });
  for(const shop of shopOrder){
  const id=css(shop);
  const visibleItems=data.stores[shop].filter(item=>!shoppingMode||data.selected[shop+'|'+item]);
@@ -259,19 +258,24 @@ function render(focusShop=null){
   return cB-cA;
  });
  if(shoppingMode&&visibleItems.length===0) continue;
+ const isCollapsed=!!(data.collapsed&&data.collapsed[shop]);
+ const hasSelected=data.stores[shop].some(item=>data.selected[shop+'|'+item]);
+ const showBody=shoppingMode||!isCollapsed||hasSelected;
  h+=`<div class="card">
  <div class="shopRow">
+ ${shoppingMode?'':`<button class="btn collapseBtn" onclick="toggleCollapse('${shop.replace(/'/g,"&#39;")}')">${isCollapsed?'▶':'▼'}</button>`}
  <div class="shop" onclick="moveTop('${shop.replace(/'/g,"&#39;")}')">${shop}</div>
- <button class="btn" onclick="toggleInput('${shop.replace(/'/g,"&#39;")}')">＋</button>
- <button class="btn ${deleteMode[shop]?'deleteModeBtn':''}" onclick="toggleDeleteMode('${shop.replace(/'/g,"&#39;")}')">－</button>
+ <button class="btn ${deleteMode[shop]?'deleteModeBtn':''}" onclick="toggleDeleteMode('${shop.replace(/'/g,"&#39;")}')">${deleteMode[shop]?'完了':'－'}</button>
  <button class="btn" onclick="showShopMenu(event,'${shop.replace(/'/g,"&#39;")}')">︙</button>
- </div>
+ </div>`;
 
- <div class="inputWrap" id="wrap_${id}">
+ if(showBody){
+ if(!shoppingMode){
+ h+=`<div class="inputWrap" id="wrap_${id}">
  <input class="input" id="input_${id}" placeholder="商品名を入力してEnter">
- </div>
-
- <div class="chips">`;
+ </div>`;
+ }
+ h+=`<div class="chips">`;
 
  visibleItems.forEach(item=>{
  const key=shop+'|'+item;
@@ -285,8 +289,9 @@ function render(focusShop=null){
  }
  });
 
-
- h+='</div></div>';
+ h+='</div>';
+ }
+ h+='</div>';
  }
  if(!h&&shoppingMode){
   h='<div class="empty">選んだものはまだありません</div>';
