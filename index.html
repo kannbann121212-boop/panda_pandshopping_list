@@ -117,6 +117,8 @@ function addStore(){
  if(!n||data.stores[n]) return;
  data.stores[n]=[];
  data.order.push(n);
+ if(!data.collapsed)data.collapsed={};
+ data.collapsed[n]=false;
  save();render();
 }
 
@@ -137,9 +139,9 @@ function toggleItem(key){
  save();render();
 }
 
-function toggleCollapse(shop){
+function toggleCollapse(shop,current){
  if(!data.collapsed)data.collapsed={};
- data.collapsed[shop]=!data.collapsed[shop];
+ data.collapsed[shop]=!current;
  save();
  render();
 }
@@ -258,12 +260,19 @@ function render(focusShop=null){
   return cB-cA;
  });
  if(shoppingMode&&visibleItems.length===0) continue;
- const isCollapsed=!!(data.collapsed&&data.collapsed[shop]);
  const hasSelected=data.stores[shop].some(item=>data.selected[shop+'|'+item]);
- const showBody=shoppingMode||!isCollapsed||hasSelected;
+ let effectiveCollapsed;
+ if(hasSelected){
+  effectiveCollapsed=false;
+ }else if(data.collapsed&&data.collapsed[shop]!==undefined){
+  effectiveCollapsed=!!data.collapsed[shop];
+ }else{
+  effectiveCollapsed=true;
+ }
+ const showBody=shoppingMode||!effectiveCollapsed;
  h+=`<div class="card">
  <div class="shopRow">
- ${shoppingMode?'':`<button class="btn collapseBtn" onclick="toggleCollapse('${shop.replace(/'/g,"&#39;")}')">${isCollapsed?'▶':'▼'}</button>`}
+ ${shoppingMode?'':`<button class="btn collapseBtn" onclick="toggleCollapse('${shop.replace(/'/g,"&#39;")}',${effectiveCollapsed})">${effectiveCollapsed?'▶':'▼'}</button>`}
  <div class="shop" onclick="moveTop('${shop.replace(/'/g,"&#39;")}')">${shop}</div>
  <button class="btn ${deleteMode[shop]?'deleteModeBtn':''}" onclick="toggleDeleteMode('${shop.replace(/'/g,"&#39;")}')">${deleteMode[shop]?'完了':'－'}</button>
  <button class="btn" onclick="showShopMenu(event,'${shop.replace(/'/g,"&#39;")}')">︙</button>
