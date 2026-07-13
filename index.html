@@ -102,12 +102,13 @@ selected:{},
 order:['スーパー','ドラッグストア']
 };
 
+let sessionOpen={};
+
 function save(){localStorage.setItem('shopping_v14',JSON.stringify(data));}
 
 function ensure(){
  if(!data.order)data.order=[];
  if(!data.count)data.count={};
- if(!data.collapsed)data.collapsed={};
  Object.keys(data.stores).forEach(s=>{if(!data.order.includes(s))data.order.push(s)});
  data.order=data.order.filter(s=>data.stores[s]);
 }
@@ -117,8 +118,7 @@ function addStore(){
  if(!n||data.stores[n]) return;
  data.stores[n]=[];
  data.order.push(n);
- if(!data.collapsed)data.collapsed={};
- data.collapsed[n]=false;
+ sessionOpen[n]=true;
  save();render();
 }
 
@@ -140,9 +140,7 @@ function toggleItem(key){
 }
 
 function toggleCollapse(shop,current){
- if(!data.collapsed)data.collapsed={};
- data.collapsed[shop]=!current;
- save();
+ sessionOpen[shop]=!!current;
  render();
 }
 
@@ -264,8 +262,8 @@ function render(focusShop=null){
  let effectiveCollapsed;
  if(hasSelected){
   effectiveCollapsed=false;
- }else if(data.collapsed&&data.collapsed[shop]!==undefined){
-  effectiveCollapsed=!!data.collapsed[shop];
+ }else if(sessionOpen[shop]!==undefined){
+  effectiveCollapsed=!sessionOpen[shop];
  }else{
   effectiveCollapsed=true;
  }
